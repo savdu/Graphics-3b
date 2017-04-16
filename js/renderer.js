@@ -294,7 +294,7 @@ Renderer.setPixel = function(x, y, color) {
   this.buffer.setPixel(x, y, color)
 };
 
-Renderer.scanTriangle = function(verts, color) {
+Renderer.scanTriangle = function(projectedVerts, color) {
   var box = computeBoundingBox(verts);
   for (var i = box.minX; i < box.maxX; i++) {
     for (var j = box.minY; j < box.maxY; j++) {
@@ -342,13 +342,27 @@ Renderer.drawTriangleGouraud = function(verts, projectedVerts, normals, uvs, mat
   // ----------- Our reference solution uses 42 lines of code.
 
   // calculate colors at each vertex using Phong Reflection Model
-  var color = [];
+  var colors = [];
   for (i = 0; i < verts.length; i++)
-    color[i] = phongReflectionModel(verts[i], this.cameraPosition, normals[i], this.lightPos, material);
+    var phongMaterial = this.getPhongMaterial(uvs, material)
+    colors[i] = Reflection.phongReflectionModel(verts[i], this.cameraPosition, normals[i], this.lightPos, phongMaterial);
 
   // Interpolate using barycentric coordinates for each pixel within triangle
-  newColor = color[0] * computeBarycentric(verts, x, y).x + color[1] * computeBarycentric(verts, x, y).y
-    + color[2] * computeBarycentric(verts, x, y).z;
+  var box = this.computeBoundingBox(projectedVerts);
+  for (var i = box.minX; i < box.maxX; i++) {
+    for (var j = box.minY; j < box.maxY; j++) {
+      if (this.computeBarycentric(verts, i, j) != undefined) {
+
+        var newColor = colors[0] * this.computeBarycentric(verts, i, j).x + colors[1] * this.computeBarycentric(verts, i, j).y
+          + colors[2] * this.computeBarycentric(verts, i, j).z;
+
+          var newColor2 = new Pixel(100,100,100);
+
+        setPixel(i, j, newColor2);
+
+      }
+    }
+  }
 
   // ----------- STUDENT CODE END ------------
 };
