@@ -290,7 +290,18 @@ Renderer.drawTriangleWire = function(projectedVerts) {
   }
 };
 
-// setPixel = function()
+setPixel = function(x, y, color) {
+  this.buffer.setPixel(x, y, color)
+}
+
+scanTriangle = function(verts, color) {
+  var box = computeBoundingBox(verts);
+  for (var i = box.minX; i < box.maxX; i++) {
+    for (var j = box.minY; j < box.maxY; j++) {
+      if (computeBarycentric(verts, i, j) != undefined) setPixel(i, j, color);
+    }
+  }
+}
 
 Renderer.drawTriangleFlat = function(verts, projectedVerts, normals, uvs, material) {
 	
