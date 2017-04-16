@@ -18,6 +18,14 @@ Reflection.phongReflectionModel = function(vertex, view, normal, lightPos, phong
 
   // ----------- STUDENT CODE BEGIN ------------
   // ----------- Our reference solution uses 9 lines of code.
+
+  // ambient
+  color.plus(phongMaterial.ambient);
+
+  // specular
+  var r = light_dir.reflect(normal);
+  var vdotr = Math.pow(view.dot(r), phongMaterial.shininess);
+  color.plus(phongMaterial.specular.copy().multipliedBy(vdotr));
   // ----------- STUDENT CODE END ------------
 
   return color;
