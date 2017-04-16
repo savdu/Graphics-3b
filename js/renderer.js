@@ -253,12 +253,12 @@ Renderer.computeBarycentric = function(projectedVerts, x, y) {
   // return undefined if (x,y) is outside the triangle
   // ----------- STUDENT CODE BEGIN ------------
   // ----------- Our reference solution uses 15 lines of code.
-  var projectedVerts[0].x = v0x;
-  var projectedVerts[0].y = v0y
-  var projectedVerts[1].x = v1x;
-  var projectedVerts[1].y = v1y
-  var projectedVerts[2].x = v2x;
-  var projectedVerts[2].y = v2y
+  var v0x = projectedVerts[0].x;
+  projectedVerts[0].y = v0y
+  projectedVerts[1].x = v1x;
+  projectedVerts[1].y = v1y
+  projectedVerts[2].x = v2x;
+  projectedVerts[2].y = v2y
 
   var f01 = (v0y-v1y)*x + (v1x-v0x)*y + (v0x*v1y - v0y*v1x);
   var f12 = (v1y-v2y)*x + (v2x-v1x)*y + (v1x*v2y - v1y*v2x);
@@ -290,6 +290,8 @@ Renderer.drawTriangleWire = function(projectedVerts) {
   }
 };
 
+// setPixel = function()
+
 Renderer.drawTriangleFlat = function(verts, projectedVerts, normals, uvs, material) {
   // ----------- STUDENT CODE BEGIN ------------
   // ----------- Our reference solution uses 45 lines of code.
@@ -300,6 +302,16 @@ Renderer.drawTriangleFlat = function(verts, projectedVerts, normals, uvs, materi
 Renderer.drawTriangleGouraud = function(verts, projectedVerts, normals, uvs, material) {
   // ----------- STUDENT CODE BEGIN ------------
   // ----------- Our reference solution uses 42 lines of code.
+
+  // calculate colors at each vertex using Phong Reflection Model
+  var color = [];
+  for (i = 0; i < verts.length; i++)
+    color[i] = phongReflectionModel(verts[i], this.cameraPosition, normals[i], this.lightPos, material);
+
+  // Interpolate using barycentric coordinates for each pixel within triangle
+  newColor = color[0] * computeBarycentric(verts, x, y).x + color[1] * computeBarycentric(verts, x, y).y
+    + color[2] * computeBarycentric(verts, x, y).z;
+
   // ----------- STUDENT CODE END ------------
 };
 
