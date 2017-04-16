@@ -245,6 +245,21 @@ Renderer.computeBarycentric = function(projectedVerts, x, y) {
   // return undefined if (x,y) is outside the triangle
   // ----------- STUDENT CODE BEGIN ------------
   // ----------- Our reference solution uses 15 lines of code.
+  var projectedVerts[0].x = v0x;
+  var projectedVerts[0].y = v0y
+  var projectedVerts[1].x = v1x;
+  var projectedVerts[1].y = v1y
+  var projectedVerts[2].x = v2x;
+  var projectedVerts[2].y = v2y
+
+  var f01 = (v0y-v1y)*x + (v1x-v0x)*y + (v0x*v1y - v0y*v1x);
+  var f12 = (v1y-v2y)*x + (v2x-v1x)*y + (v1x*v2y - v1y*v2x);
+  var f20 = (v2y-v0y)*x + (v0x-v2x)*y + (v2x*v0y - v2y*v0x);
+  var area = f01 + f12 + f20;
+  if (f01 < 0 || f12 < 0 || f20 < 0) return undefined;
+
+  triCoords.push(new THREE.Vector3(f12/area, f20/area, f01/area));
+
   // ----------- STUDENT CODE END ------------
   return triCoords;
 };
