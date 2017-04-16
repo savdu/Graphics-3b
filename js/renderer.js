@@ -223,7 +223,7 @@ Renderer.computeBoundingBox = function(projectedVerts) {
 	box.minX = Math.round(projectedVerts[0].x);
 	box.minY = Math.round(projectedVerts[0].y);
 	
-	for (var i = 0; i < verts.length; i++) {
+	for (var i = 0; i < projectedVerts.length; i++) {
 		// max
 		if (Math.round(projectedVerts[i].x) > box.maxX) box.maxX = Math.round(projectedVerts[i].x);
 		if (Math.round(projectedVerts[i].y) > box.maxY) box.maxY = Math.round(projectedVerts[i].y);
@@ -268,6 +268,33 @@ Renderer.drawTriangleWire = function(projectedVerts) {
 };
 
 Renderer.drawTriangleFlat = function(verts, projectedVerts, normals, uvs, material) {
+	
+	var sumNormals = new THREE.Vector3();
+	var sumVertices = new THREE.Vector3();
+	
+	for (var i = 0; i < verts.length; i++) {
+		sumNormals.add(normals[i]);
+		sumVertices.add(verts[i]);
+	}
+	
+	var faceNormal = sumNormals.divideScalar(verts.length);
+	var faceCentroid = sumVertices.divideScalar(verts.length);
+		
+	// uvs calculated using http://stackoverflow.com/questions/20774648/three-js-generate-uv-coordinate
+	// var box = this.computeBoundingBox(projectedVerts);
+	// var offset = new THREE.Vector2(0 - box.minX, 0 - box.minY);
+	// var range = new THREE.Vector2(box.maxX - box.minX, box.maxY - box.minY);
+	// uvs = [];
+	// uvs.push([
+	//       new THREE.Vector2((verts[0].x + offset.x)/range.x, (verts[0].y + offset.y)/range.y),
+	//       new THREE.Vector2((verts[1].x + offset.x)/range.x, (verts[1].y + offset.y)/range.y),
+	//       new THREE.Vector2((verts[2].x + offset.x)/range.x, (verts[2].y + offset.y)/range.y)
+	// ]);
+
+	var phongMaterial = this.getPhongMaterial(uvs, material)
+	
+	Reflection.phongReflectionModel(faceCentroid, this.cameraPosition, faceNormal, this.lightPos, phongMaterial)
+	
   // ----------- STUDENT CODE BEGIN ------------
   // ----------- Our reference solution uses 45 lines of code.
   // ----------- STUDENT CODE END ------------
