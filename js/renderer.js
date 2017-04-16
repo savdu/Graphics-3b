@@ -23,8 +23,9 @@ Reflection.phongReflectionModel = function(vertex, view, normal, lightPos, phong
   color.plus(phongMaterial.ambient);
 
   // specular
-  var r = light_dir.reflect(normal);
-  var vdotr = Math.pow(view.dot(r), phongMaterial.shininess);
+  var r = light_dir.multiplyScalar(-1).reflect(normal);
+  var v = (new THREE.Vector3()).subVectors(view, vertex).normalize();
+  var vdotr = Math.pow(Math.max(0, v.dot(r)), phongMaterial.shininess);
   color.plus(phongMaterial.specular.copy().multipliedBy(vdotr));
   // ----------- STUDENT CODE END ------------
 
@@ -294,11 +295,11 @@ Renderer.setPixel = function(x, y, color) {
   this.buffer.setPixel(x, y, color)
 };
 
-Renderer.scanTriangle = function(projectedVerts, color) {
-  var box = computeBoundingBox(verts);
+Renderer.scanTriangle = function(verts, color) {
+  var box = this.computeBoundingBox(verts);
   for (var i = box.minX; i < box.maxX; i++) {
     for (var j = box.minY; j < box.maxY; j++) {
-      if (computeBarycentric(verts, i, j) != undefined) setPixel(i, j, color);
+      if (this.computeBarycentric(verts, i, j) != undefined) this.setPixel(i, j, color);
     }
   }
 };
@@ -322,14 +323,18 @@ Renderer.drawTriangleFlat = function(verts, projectedVerts, normals, uvs, materi
 	// var range = new THREE.Vector2(box.maxX - box.minX, box.maxY - box.minY);
 	// uvs = [];
 	// uvs.push([
-	//       new THREE.Vector2((verts[0].x + offset.x)/range.x, (verts[0].y + offset.y)/range.y),
-	//       new THREE.Vector2((verts[1].x + offset.x)/range.x, (verts[1].y + offset.y)/range.y),
-	//       new THREE.Vector2((verts[2].x + offset.x)/range.x, (verts[2].y + offset.y)/range.y)
+	//       new THREE.Vector2((projectedVerts[0].x + offset.x)/range.x, (projectedVerts[0].y + offset.y)/range.y),
+	//       new THREE.Vector2((projectedVerts[1].x + offset.x)/range.x, (projectedVerts[1].y + offset.y)/range.y),
+	//       new THREE.Vector2((projectedVerts[2].x + offset.x)/range.x, (projectedVerts[2].y + offset.y)/range.y)
 	// ]);
 
 	var phongMaterial = this.getPhongMaterial(uvs, material)
 	
-	Reflection.phongReflectionModel(faceCentroid, this.cameraPosition, faceNormal, this.lightPos, phongMaterial)
+	var color = Reflection.phongReflectionModel(faceCentroid, this.cameraPosition, faceNormal, this.lightPos, phongMaterial)
+	
+	// var white = new Pixel(255, 255, 255, 1)
+	
+	this.scanTriangle(projectedVerts, color);
 	
   // ----------- STUDENT CODE BEGIN ------------
   // ----------- Our reference solution uses 45 lines of code.
@@ -342,27 +347,27 @@ Renderer.drawTriangleGouraud = function(verts, projectedVerts, normals, uvs, mat
   // ----------- Our reference solution uses 42 lines of code.
 
   // calculate colors at each vertex using Phong Reflection Model
-  var colors = [];
-  for (i = 0; i < verts.length; i++)
-    var phongMaterial = this.getPhongMaterial(uvs, material)
-    colors[i] = Reflection.phongReflectionModel(verts[i], this.cameraPosition, normals[i], this.lightPos, phongMaterial);
+  // var colors = [];
+  // for (i = 0; i < verts.length; i++)
+  //   var phongMaterial = this.getPhongMaterial(uvs, material)
+  //   colors[i] = Reflection.phongReflectionModel(verts[i], this.cameraPosition, normals[i], this.lightPos, phongMaterial);
 
-  // Interpolate using barycentric coordinates for each pixel within triangle
-  var box = this.computeBoundingBox(projectedVerts);
-  for (var i = box.minX; i < box.maxX; i++) {
-    for (var j = box.minY; j < box.maxY; j++) {
-      if (this.computeBarycentric(verts, i, j) != undefined) {
+  // // Interpolate using barycentric coordinates for each pixel within triangle
+  // var box = this.computeBoundingBox(projectedVerts);
+  // for (var i = box.minX; i < box.maxX; i++) {
+  //   for (var j = box.minY; j < box.maxY; j++) {
+  //     if (this.computeBarycentric(verts, i, j) != undefined) {
 
-        var newColor = colors[0] * this.computeBarycentric(verts, i, j).x + colors[1] * this.computeBarycentric(verts, i, j).y
-          + colors[2] * this.computeBarycentric(verts, i, j).z;
+  //       var newColor = colors[0] * this.computeBarycentric(verts, i, j).x + colors[1] * this.computeBarycentric(verts, i, j).y
+  //         + colors[2] * this.computeBarycentric(verts, i, j).z;
 
-          var newColor2 = new Pixel(100,100,100);
+  //         var newColor2 = new Pixel(100,100,100);
 
-        setPixel(i, j, newColor2);
+  //       setPixel(i, j, newColor2);
 
-      }
-    }
-  }
+  //     }
+  //   }
+  // }
 
   // ----------- STUDENT CODE END ------------
 };
