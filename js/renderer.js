@@ -253,12 +253,12 @@ Renderer.computeBarycentric = function(projectedVerts, x, y) {
   // return undefined if (x,y) is outside the triangle
   // ----------- STUDENT CODE BEGIN ------------
   // ----------- Our reference solution uses 15 lines of code.
-  var projectedVerts[0].x = v0x;
-  var projectedVerts[0].y = v0y
-  var projectedVerts[1].x = v1x;
-  var projectedVerts[1].y = v1y
-  var projectedVerts[2].x = v2x;
-  var projectedVerts[2].y = v2y
+  var v0x = projectedVerts[0].x;
+  var v0y = projectedVerts[0].y;
+  var v1x = projectedVerts[1].x;
+  var v1y = projectedVerts[1].y;
+  var v2x = projectedVerts[2].x;
+  var v2y = projectedVerts[2].y;	
 
   var f01 = (v0y-v1y)*x + (v1x-v0x)*y + (v0x*v1y - v0y*v1x);
   var f12 = (v1y-v2y)*x + (v2x-v1x)*y + (v1x*v2y - v1y*v2x);
