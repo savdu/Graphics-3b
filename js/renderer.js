@@ -122,7 +122,6 @@ Renderer.render = function() {
         var viewMat = (new THREE.Matrix4()).multiplyMatrices(this.camera.projectionMatrix,
           this.camera.matrixWorldInverse);
 
-
         Renderer.drawTriangle(verts, vert_normals, mesh.uvs[faceIdx], meshInst.material, viewMat);
       }
     }
@@ -181,6 +180,29 @@ Renderer.projectVerticesNaive = function(verts) {
 
 Renderer.projectVertices = function(verts, viewMat) {
   var projectedVerts = []; // Vector3/Vector4 array (you need z for z buffering)
+	
+	var counter = 0; // counter for z-checking
+	
+	for (var i = 0; i < verts.length; i++) { // length should always be 3?
+		projectedVerts[i] = new THREE.Vector4(verts[i].x, verts[i].y, verts[i].z, 1.0);
+		projectedVerts[i].applyMatrix4(viewMat); // apply viewMat
+		
+		// normalize
+		projectedVerts[i].x = projectedVerts[i].x / projectedVerts[i].w;
+		projectedVerts[i].y = projectedVerts[i].y / projectedVerts[i].w;
+		projectedVerts[i].z = projectedVerts[i].z / projectedVerts[i].w;
+		
+		// scale
+    projectedVerts[i].x = projectedVerts[i].x * this.width / 2 + this.width / 2;
+    projectedVerts[i].y = projectedVerts[i].y * this.height / 2 + this.height / 2;
+		
+		// z-check
+		if (!(projectedVerts[i].z > this.negNear && projectedVerts[i].z < this.negFar)) {
+			counter += 1
+		}
+	}
+
+	if (counter == 3) projectedVerts = undefined; // skip if all vertices are out-of-bounds
 
   // ----------- STUDENT CODE BEGIN ------------
   // ----------- Our reference solution uses 12 lines of code.
