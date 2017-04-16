@@ -217,7 +217,21 @@ Renderer.computeBoundingBox = function(projectedVerts) {
   box.minY = -1;
   box.maxX = -1;
   box.maxY = -1;
-
+	
+	// set mins to first vertex for later comparison
+	// (need to round to use as pixel values, from Piazza) 
+	box.minX = Math.round(projectedVerts[0].x);
+	box.minY = Math.round(projectedVerts[0].y);
+	
+	for (var i = 0; i < verts.length; i++) {
+		// max
+		if (Math.round(projectedVerts[i].x) > box.maxX) box.maxX = Math.round(projectedVerts[i].x);
+		if (Math.round(projectedVerts[i].y) > box.maxY) box.maxY = Math.round(projectedVerts[i].y);
+		// min                                                                       
+		if (Math.round(projectedVerts[i].x) < box.minX) box.minX = Math.round(projectedVerts[i].x);
+		if (Math.round(projectedVerts[i].y) < box.minY) box.minY = Math.round(projectedVerts[i].y);
+	}
+	
   // ----------- STUDENT CODE BEGIN ------------
   // ----------- Our reference solution uses 14 lines of code.
   // ----------- STUDENT CODE END ------------
