@@ -295,25 +295,28 @@ Renderer.setPixel = function(x, y, color) {
   this.buffer.setPixel(x, y, color)
 };
 
-Renderer.scanTriangle = function(verts, color) {
-  var box = this.computeBoundingBox(verts);
-  for (var i = box.minX; i < box.maxX; i++) {
-    for (var j = box.minY; j < box.maxY; j++) {
-      if (this.computeBarycentric(verts, i, j) != undefined) this.setPixel(i, j, color);
-    }
-  }
-};
+// Renderer.scanTriangle = function(verts, color) {
+//   var box = this.computeBoundingBox(verts);
+//   for (var i = box.minX; i < box.maxX; i++) {
+//     for (var j = box.minY; j < box.maxY; j++) {
+//       if (this.computeBarycentric(verts, i, j) != undefined) this.setPixel(i, j, color);
+//     }
+//   }
+// };
 
 Renderer.drawTriangleFlat = function(verts, projectedVerts, normals, uvs, material) {
 	
+	// initialize sums for average
 	var sumNormals = new THREE.Vector3();
 	var sumVertices = new THREE.Vector3();
 	
+	// sum for averages
 	for (var i = 0; i < verts.length; i++) {
 		sumNormals.add(normals[i]);
 		sumVertices.add(verts[i]);
 	}
 	
+	// get averages
 	var faceNormal = sumNormals.divideScalar(verts.length);
 	var faceCentroid = sumVertices.divideScalar(verts.length);
 
@@ -321,16 +324,17 @@ Renderer.drawTriangleFlat = function(verts, projectedVerts, normals, uvs, materi
 	
 	var color = Reflection.phongReflectionModel(faceCentroid, this.cameraPosition, faceNormal, this.lightPos, phongMaterial)
 	
-	// var white = new Pixel(255, 255, 255, 1)
-	
 	// adapted from scanTriangle to add zBuffer stuff
   var box = this.computeBoundingBox(projectedVerts);
-  for (var i = Math.max(0, box.minX); i < box.maxX; i++) {
-		if (i > this.width - 1) break;
-    for (var j = Math.max(0, box.minY); j < box.maxY; j++) {
-			if (j > this.height - 1) break;
+  for (var i = Math.max(0, box.minX); i < box.maxX; i++) { // ensure within frame
+		if (i > this.width - 1) break; // ensure within frame
+    for (var j = Math.max(0, box.minY); j < box.maxY; j++) { // ensure within frame
+			if (j > this.height - 1) break; // ensure within frame
+			
 			var bary = this.computeBarycentric(projectedVerts, i, j)
+			
 			if (bary !== undefined) {
+				// check z'/w
 				var zPrime = projectedVerts[0].z * bary.x + projectedVerts[1].z * bary.y + projectedVerts[2].z * bary.z;
 				var w = projectedVerts[0].w * bary.x + projectedVerts[1].w * bary.y + projectedVerts[2].w * bary.z;
 				if (zPrime / w < this.zBuffer[i][j]) {
@@ -353,28 +357,38 @@ Renderer.drawTriangleGouraud = function(verts, projectedVerts, normals, uvs, mat
   // ----------- STUDENT CODE BEGIN ------------
   // ----------- Our reference solution uses 42 lines of code.
 
+	var phongMaterial = this.getPhongMaterial(uvs, material)
+
   // calculate colors at each vertex using Phong Reflection Model
-  // var colors = [];
-  // for (i = 0; i < verts.length; i++)
-  //   var phongMaterial = this.getPhongMaterial(uvs, material)
-  //   colors[i] = Reflection.phongReflectionModel(verts[i], this.cameraPosition, normals[i], this.lightPos, phongMaterial);
+  var colors = [];
+  for (i = 0; i < verts.length; i++)
+    colors[i] = Reflection.phongReflectionModel(verts[i], this.cameraPosition, normals[i], this.lightPos, phongMaterial);
 
-  // // Interpolate using barycentric coordinates for each pixel within triangle
-  // var box = this.computeBoundingBox(projectedVerts);
-  // for (var i = box.minX; i < box.maxX; i++) {
-  //   for (var j = box.minY; j < box.maxY; j++) {
-  //     if (this.computeBarycentric(verts, i, j) != undefined) {
-
-  //       var newColor = colors[0] * this.computeBarycentric(verts, i, j).x + colors[1] * this.computeBarycentric(verts, i, j).y
-  //         + colors[2] * this.computeBarycentric(verts, i, j).z;
-
-  //         var newColor2 = new Pixel(100,100,100);
-
-  //       setPixel(i, j, newColor2);
-
-  //     }
-  //   }
-  // }
+  // Interpolate using barycentric coordinates for each pixel within triangle
+  var box = this.computeBoundingBox(projectedVerts);
+  for (var i = Math.max(0, box.minX); i < box.maxX; i++) { 
+		if (i > this.width - 1) break;
+    for (var j = Math.max(0, box.minY); j < box.maxY; j++) {
+			if (j > this.height - 1) break;
+			
+			var bary = this.computeBarycentric(projectedVerts, i, j);
+			
+      if (bary !== undefined) {
+				var zPrime = projectedVerts[0].z * bary.x + projectedVerts[1].z * bary.y + projectedVerts[2].z * bary.z;
+				var w = projectedVerts[0].w * bary.x + projectedVerts[1].w * bary.y + projectedVerts[2].w * bary.z;
+				
+				if (zPrime / w < this.zBuffer[i][j]) {
+					// interpolate color using vertices
+					var newColor = colors[0].copyMultiplyScalar(bary.x);
+					newColor.plus(colors[1].copyMultiplyScalar(bary.y));
+					newColor.plus(colors[2].copyMultiplyScalar(bary.z));
+					
+					this.setPixel(i, j, newColor);
+					this.zBuffer[i][j] = zPrime / w;
+				}
+      }
+    }
+  }
 
   // ----------- STUDENT CODE END ------------
 };
@@ -382,7 +396,46 @@ Renderer.drawTriangleGouraud = function(verts, projectedVerts, normals, uvs, mat
 
 Renderer.drawTrianglePhong = function(verts, projectedVerts, normals, uvs, material) {
   // ----------- STUDENT CODE BEGIN ------------
-  // ----------- Our reference solution uses 53 lines of code.
+	var phongMaterial = this.getPhongMaterial(uvs, material)
+
+  var box = this.computeBoundingBox(projectedVerts);
+  for (var i = Math.max(0, box.minX); i < box.maxX; i++) {
+		if (i > this.width - 1) break;
+    for (var j = Math.max(0, box.minY); j < box.maxY; j++) {
+			if (j > this.height - 1) break;
+			
+			var bary = this.computeBarycentric(projectedVerts, i, j);
+			
+      if (bary !== undefined) {
+				var zPrime = projectedVerts[0].z * bary.x + projectedVerts[1].z * bary.y + projectedVerts[2].z * bary.z;
+				var w = projectedVerts[0].w * bary.x + projectedVerts[1].w * bary.y + projectedVerts[2].w * bary.z;
+				
+				if (zPrime / w < this.zBuffer[i][j]) {
+					var temp = new THREE.Vector3(); // for holding copies of values
+					
+					// interpolate normal
+					var newNormal = new THREE.Vector3();
+					newNormal.add(temp.copy(normals[0]).multiplyScalar(bary.x));
+					newNormal.add(temp.copy(normals[1]).multiplyScalar(bary.y));
+					newNormal.add(temp.copy(normals[2]).multiplyScalar(bary.z));
+					
+					// interpolate vertex
+					var newVert = new THREE.Vector3();
+					newVert.add(temp.copy(verts[0]).multiplyScalar(bary.x));
+					newVert.add(temp.copy(verts[1]).multiplyScalar(bary.y));
+					newVert.add(temp.copy(verts[2]).multiplyScalar(bary.z));
+					
+					var newColor = Reflection.phongReflectionModel(newVert, this.cameraPosition, newNormal, this.lightPos, phongMaterial)
+					
+					this.setPixel(i, j, newColor);
+					this.zBuffer[i][j] = zPrime / w;
+				}
+      }
+    }
+  }
+	
+	
+  // ----------- Our reference solution uses 53 lines of code.	
   // ----------- STUDENT CODE END ------------
 };
 
