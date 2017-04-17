@@ -321,7 +321,7 @@ Renderer.drawTriangleFlat = function(verts, projectedVerts, normals, uvs, materi
 	var faceCentroid = sumVertices.divideScalar(verts.length);
 
 	var phongMaterial = this.getPhongMaterial(uvs, material);
-	
+	// use to get color
 	var color = Reflection.phongReflectionModel(faceCentroid, this.cameraPosition, faceNormal, this.lightPos, phongMaterial)
 	
 	// adapted from scanTriangle to add zBuffer stuff
@@ -333,13 +333,13 @@ Renderer.drawTriangleFlat = function(verts, projectedVerts, normals, uvs, materi
 			
 			var bary = this.computeBarycentric(projectedVerts, i, j)
 			
-			if (bary !== undefined) {
+			if (bary !== undefined) { // only care if point in triangle
 				// check z'/w
 				var zPrime = projectedVerts[0].z * bary.x + projectedVerts[1].z * bary.y + projectedVerts[2].z * bary.z;
 				var w = projectedVerts[0].w * bary.x + projectedVerts[1].w * bary.y + projectedVerts[2].w * bary.z;
 				if (zPrime / w < this.zBuffer[i][j]) {
 					this.setPixel(i, j, color);
-					this.zBuffer[i][j] = zPrime / w;
+					this.zBuffer[i][j] = zPrime / w; // set new zBuffer minimum
 				}
 			}
 		}
@@ -396,7 +396,6 @@ Renderer.drawTriangleGouraud = function(verts, projectedVerts, normals, uvs, mat
 
 Renderer.drawTrianglePhong = function(verts, projectedVerts, normals, uvs, material) {
   // ----------- STUDENT CODE BEGIN ------------
-	var phongMaterial = this.getPhongMaterial(uvs, material)
 
   var box = this.computeBoundingBox(projectedVerts);
   for (var i = Math.max(0, box.minX); i < box.maxX; i++) {
@@ -424,6 +423,16 @@ Renderer.drawTrianglePhong = function(verts, projectedVerts, normals, uvs, mater
 					newVert.add(temp.copy(verts[0]).multiplyScalar(bary.x));
 					newVert.add(temp.copy(verts[1]).multiplyScalar(bary.y));
 					newVert.add(temp.copy(verts[2]).multiplyScalar(bary.z));
+					
+					// interpolate UVs (https://www.gamedev.net/topic/593669-perspective-correct-barycentric-coordinates/)
+					if (uvs !== undefined) {
+						var newUVs = new THREE.Vector2((uvs[0].x / projectedVerts[0].w) * bary.x + (uvs[1].x / projectedVerts[1].w) * bary.y + (uvs[2].x / projectedVerts[2].w) * bary.z,	
+						(uvs[0].y / projectedVerts[0].w) * bary.x + (uvs[1].y / projectedVerts[1].w) * bary.y + (uvs[2].y / projectedVerts[2].w) * bary.z);
+						var wPrime = (1 / projectedVerts[0].w) * bary.x + (1 / projectedVerts[1].w) * bary.y + (1 / projectedVerts[2].w) * bary.z;
+						newUVs.divideScalar(wPrime);
+					}
+
+					var phongMaterial = this.getPhongMaterial(newUVs, material); // if newUVs undefined, still avoids errors
 					
 					var newColor = Reflection.phongReflectionModel(newVert, this.cameraPosition, newNormal, this.lightPos, phongMaterial)
 					
