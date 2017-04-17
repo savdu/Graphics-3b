@@ -206,7 +206,7 @@ Renderer.projectVertices = function(verts, viewMat) {
     projectedVerts[i].y = projectedVerts[i].y * this.height / 2 + this.height / 2;
 		
 		// z-check
-		if (!(projectedVerts[i].z > this.negNear && projectedVerts[i].z < this.negFar)) {
+		if (!(projectedVerts[i].w > this.negNear && projectedVerts[i].w < this.negFar)) {
 			counter += 1
 		}
 	}
@@ -229,16 +229,16 @@ Renderer.computeBoundingBox = function(projectedVerts) {
 	
 	// set mins to first vertex for later comparison
 	// (need to round to use as pixel values, from Piazza) 
-	box.minX = Math.round(projectedVerts[0].x);
-	box.minY = Math.round(projectedVerts[0].y);
+	box.minX = Math.floor(projectedVerts[0].x);
+	box.minY = Math.floor(projectedVerts[0].y);
 	
 	for (var i = 0; i < projectedVerts.length; i++) {
 		// max
-		if (Math.round(projectedVerts[i].x) > box.maxX) box.maxX = Math.round(projectedVerts[i].x);
-		if (Math.round(projectedVerts[i].y) > box.maxY) box.maxY = Math.round(projectedVerts[i].y);
+		if (projectedVerts[i].x > box.maxX) box.maxX = Math.ceil(projectedVerts[i].x);
+		if (projectedVerts[i].y > box.maxY) box.maxY = Math.ceil(projectedVerts[i].y);
 		// min                                                                       
-		if (Math.round(projectedVerts[i].x) < box.minX) box.minX = Math.round(projectedVerts[i].x);
-		if (Math.round(projectedVerts[i].y) < box.minY) box.minY = Math.round(projectedVerts[i].y);
+		if (projectedVerts[i].x < box.minX) box.minX = Math.floor(projectedVerts[i].x);
+		if (projectedVerts[i].y < box.minY) box.minY = Math.floor(projectedVerts[i].y);
 	}
 	
   // ----------- STUDENT CODE BEGIN ------------
@@ -267,7 +267,7 @@ Renderer.computeBarycentric = function(projectedVerts, x, y) {
   var area = f01 + f12 + f20;
   if (f01 < 0 || f12 < 0 || f20 < 0) return undefined;
 
-  triCoords.push(new THREE.Vector3(f12/area, f20/area, f01/area));
+  triCoords = new THREE.Vector3(f12/area, f20/area, f01/area);
 
   // ----------- STUDENT CODE END ------------
   return triCoords;
@@ -316,25 +316,32 @@ Renderer.drawTriangleFlat = function(verts, projectedVerts, normals, uvs, materi
 	
 	var faceNormal = sumNormals.divideScalar(verts.length);
 	var faceCentroid = sumVertices.divideScalar(verts.length);
-		
-	// uvs calculated using http://stackoverflow.com/questions/20774648/three-js-generate-uv-coordinate
-	// var box = this.computeBoundingBox(projectedVerts);
-	// var offset = new THREE.Vector2(0 - box.minX, 0 - box.minY);
-	// var range = new THREE.Vector2(box.maxX - box.minX, box.maxY - box.minY);
-	// uvs = [];
-	// uvs.push([
-	//       new THREE.Vector2((projectedVerts[0].x + offset.x)/range.x, (projectedVerts[0].y + offset.y)/range.y),
-	//       new THREE.Vector2((projectedVerts[1].x + offset.x)/range.x, (projectedVerts[1].y + offset.y)/range.y),
-	//       new THREE.Vector2((projectedVerts[2].x + offset.x)/range.x, (projectedVerts[2].y + offset.y)/range.y)
-	// ]);
 
-	var phongMaterial = this.getPhongMaterial(uvs, material)
+	var phongMaterial = this.getPhongMaterial(uvs, material);
 	
 	var color = Reflection.phongReflectionModel(faceCentroid, this.cameraPosition, faceNormal, this.lightPos, phongMaterial)
 	
 	// var white = new Pixel(255, 255, 255, 1)
 	
-	this.scanTriangle(projectedVerts, color);
+	// adapted from scanTriangle to add zBuffer stuff
+  var box = this.computeBoundingBox(projectedVerts);
+  for (var i = Math.max(0, box.minX); i < box.maxX; i++) {
+		if (i > this.width - 1) break;
+    for (var j = Math.max(0, box.minY); j < box.maxY; j++) {
+			if (j > this.height - 1) break;
+			var bary = this.computeBarycentric(projectedVerts, i, j)
+			if (bary !== undefined) {
+				var zPrime = projectedVerts[0].z * bary.x + projectedVerts[1].z * bary.y + projectedVerts[2].z * bary.z;
+				var w = projectedVerts[0].w * bary.x + projectedVerts[1].w * bary.y + projectedVerts[2].w * bary.z;
+				if (zPrime / w < this.zBuffer[i][j]) {
+					this.setPixel(i, j, color);
+					this.zBuffer[i][j] = zPrime / w;
+				}
+			}
+		}
+	}
+	
+	// this.scanTriangle(projectedVerts, color);
 	
   // ----------- STUDENT CODE BEGIN ------------
   // ----------- Our reference solution uses 45 lines of code.
