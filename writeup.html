@@ -75,8 +75,9 @@ Similar to how diffuse/specular mapping were already implemented, we used the uv
 To optimize performance, we set up checks for whether the uvs were defined or not before entering and calculating pixel colors per point in the triangle. For flat and Gouraud shader, this should save time, since it means that we do not have to calculate a unique phongMaterial (because no unique uvs when undefined) for each pixel, rather, we get to only calculate the face's or vertices' color once per triangle, respectively. In addition, we check whether barycentric coordinates are defined to decide whether to even do the z-buffer check, and only after it passes both of these checks do we execute the rest of the needed shading functions, which should save a bit of calculation.<p>
 
 <p><hr><p><a name='Art+Contest'></a><h1>Art Contest</h1><p><hr><p>
-(Your description of your implentation of Art Contest goes here...)
+Transparent teapot?
+<br><img src='results/transparent_teapot.png'>
 
-<br>You can include as many results as you want, but please at least include the following results:    </div>
+</div>
 </body>
 </html>
