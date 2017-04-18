@@ -291,6 +291,7 @@ Renderer.drawTriangleWire = function(projectedVerts) {
   }
 };
 
+// helper function to set pixels
 Renderer.setPixel = function(x, y, color) {
   this.buffer.setPixel(x, y, color)
 };
@@ -456,10 +457,32 @@ Renderer.drawTrianglePhong = function(verts, projectedVerts, normals, uvs, mater
 							uvs[0].y * bary.x + uvs[1].y * bary.y + uvs[2].y * bary.z);
 						
 						// normal mapping	(normal doesn't need to be interpolated)
-						var xyz = 0;
-						
 						var phongMaterial = this.getPhongMaterial(newUVs, material);
-						var newColor = Reflection.phongReflectionModel(newVert, this.cameraPosition, xyz, this.lightPos, phongMaterial);
+						
+						// need to check if xyzNormal undefined
+						if (material.xyzNormal !== undefined) {
+							// get xyzNormal (similar to diffuse/specular from getPhoneMaterial())
+							var texel = material.xyzNormal.getPixel(Math.floor(newUVs.x * (material.xyzNormal.width-1)),
+								Math.floor(newUVs.y * (material.xyzNormal.height-1)));
+							
+							// mapping function (after converting to vector)
+							var xyz = new THREE.Vector3(texel.r, texel.g, texel.b);
+							xyz.multiplyScalar(2);
+							xyz.x -= 1;
+							xyz.y -= 1;
+							xyz.z -= 1;
+							
+							// replace normal with xyzNormal
+							var newColor = Reflection.phongReflectionModel(newVert, this.cameraPosition, xyz, this.lightPos, phongMaterial);
+						}
+						else {
+							var newNormal = new THREE.Vector3();
+							newNormal.add(temp.copy(normals[0]).multiplyScalar(bary.x));
+							newNormal.add(temp.copy(normals[1]).multiplyScalar(bary.y));
+							newNormal.add(temp.copy(normals[2]).multiplyScalar(bary.z));
+						
+							var newColor = Reflection.phongReflectionModel(newVert, this.cameraPosition, newNormal, this.lightPos, phongMaterial);
+						}
 					}
 					// if there are no UVs, there is no normal mapping to do, so normal needs to be interpolated
 					else {
@@ -471,13 +494,6 @@ Renderer.drawTrianglePhong = function(verts, projectedVerts, normals, uvs, mater
 						
 						var newColor = Reflection.phongReflectionModel(newVert, this.cameraPosition, newNormal, this.lightPos, phongMaterial);
 					}
-					
-					// var xyz = new THREE.Vector3(newColor.r, newColor.g, newColor.b);
-					// xyz.multiplyScalar(2);
-					// // .subScalar() doesn't work for some reason...
-					// xyz.x -= 1;
-					// xyz.y -= 1;
-					// xyz.z -= 1;
 										
 					this.setPixel(i, j, newColor);
 					this.zBuffer[i][j] = zPrime;

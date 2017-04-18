@@ -67,11 +67,11 @@ Per Piazza, it appears that getPhongMaterial() already took care of most of this
 Same as diffuse.<p>
 
 <p><hr><p><a name='XYZ+Normal+Mapping'></a><h1>XYZ Normal Mapping</h1><p><hr><p>
-(Your description of your implentation of XYZ Normal Mapping goes here...)
+Similar to how diffuse/specular mapping were already implemented, we used the uv coordinates to calculate the xyzNormal (when it exists) from the material, which returns an RGB pixel. We converted this pixel to a vector in XYZ using the RGB*2-1 mapping given in the examples page, and then used this in place of where we previously used the calculate new normal vector in Phong shader.
+<a href='index.html?Camera=[0.90192,0.43051,1.6286];[0.21,-0.9677,0.1395];[0,0,0]&Mesh=afrhead.obj;true&Mesh=afreye.obj;true&Resolution=320x240&Shading_Model=Phong&Ambient=[0,0,0]&Diffuse=[255,255,255]&Specular=[255,255,255]&Shininess=5'>Camera=[0.90192,0.43051,1.6286];[0.21,-0.9677,0.1395];[0,0,0]&Mesh=afrhead.obj;true&Mesh=afreye.obj;true&Resolution=320x240&Shading_Model=Phong&Ambient=[0,0,0]&Diffuse=[255,255,255]&Specular=[255,255,255]&Shininess=5</a>
+<br><img src='results/xyz.png'>
 
-<br>You can include as many results as you want, but please at least include the following results:<br> <a href='index.html?Camera=[0.90192,0.43051,1.6286];[0.21,-0.9677,0.1395];[0,0,0]&Mesh=afrhead.obj;true&Mesh=afreye.obj;true&Resolution=320x240&Shading_Model=Phong&Ambient=[0,0,0]&Diffuse=[255,255,255]&Specular=[255,255,255]&Shininess=5'>Camera=[0.90192,0.43051,1.6286];[0.21,-0.9677,0.1395];[0,0,0]&Mesh=afrhead.obj;true&Mesh=afreye.obj;true&Resolution=320x240&Shading_Model=Phong&Ambient=[0,0,0]&Diffuse=[255,255,255]&Specular=[255,255,255]&Shininess=5</a>
-
-<br><img src='results/placeholder.png'><p><hr><p><a name='Performance+Contest'></a><h1>Performance Contest</h1><p><hr><p>
+<p><hr><p><a name='Performance+Contest'></a><h1>Performance Contest</h1><p><hr><p>
 To optimize performance, we set up checks for whether the uvs were defined or not before entering and calculating pixel colors per point in the triangle. For flat and Gouraud shader, this should save time, since it means that we do not have to calculate a unique phongMaterial (because no unique uvs when undefined) for each pixel, rather, we get to only calculate the face's or vertices' color once per triangle, respectively. In addition, we check whether barycentric coordinates are defined to decide whether to even do the z-buffer check, and only after it passes both of these checks do we execute the rest of the needed shading functions, which should save a bit of calculation.<p>
 
 <p><hr><p><a name='Art+Contest'></a><h1>Art Contest</h1><p><hr><p>
