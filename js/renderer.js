@@ -320,6 +320,7 @@ Renderer.drawTriangleFlat = function(verts, projectedVerts, normals, uvs, materi
 	var faceNormal = sumNormals.divideScalar(verts.length);
 	var faceCentroid = sumVertices.divideScalar(verts.length);
 	
+	// faster outside if uvs aren't changing (undefined)
 	if (uvs === undefined) {
 		var phongMaterial = this.getPhongMaterial(uvs, material);
 		// use to get color
@@ -367,8 +368,9 @@ Renderer.drawTriangleGouraud = function(verts, projectedVerts, normals, uvs, mat
   // ----------- STUDENT CODE BEGIN ------------
   // ----------- Our reference solution uses 42 lines of code.
 
+	// faster outside if uvs aren't changing (undefined)
 	if (uvs === undefined) {
-		var phongMaterial = this.getPhongMaterial(uvs, material)
+		var phongMaterial = this.getPhongMaterial(uvs, material);
 
 	  // calculate colors at each vertex using Phong Reflection Model
 	  var colors = [];
@@ -417,6 +419,11 @@ Renderer.drawTriangleGouraud = function(verts, projectedVerts, normals, uvs, mat
 
 Renderer.drawTrianglePhong = function(verts, projectedVerts, normals, uvs, material) {
   // ----------- STUDENT CODE BEGIN ------------
+	
+	// faster outside if uvs aren't changing (undefined)
+	if (uvs === undefined) {
+		var phongMaterial = this.getPhongMaterial(uvs, material);
+	}
 
   var box = this.computeBoundingBox(projectedVerts);
   for (var i = Math.max(0, box.minX); i < box.maxX; i++) {
@@ -431,12 +438,6 @@ Renderer.drawTrianglePhong = function(verts, projectedVerts, normals, uvs, mater
 				
 				if (zPrime < this.zBuffer[i][j]) {
 					var temp = new THREE.Vector3(); // for holding copies of values
-					
-					// interpolate normal
-					var newNormal = new THREE.Vector3();
-					newNormal.add(temp.copy(normals[0]).multiplyScalar(bary.x));
-					newNormal.add(temp.copy(normals[1]).multiplyScalar(bary.y));
-					newNormal.add(temp.copy(normals[2]).multiplyScalar(bary.z));
 					
 					// interpolate vertex
 					var newVert = new THREE.Vector3();
@@ -453,20 +454,30 @@ Renderer.drawTrianglePhong = function(verts, projectedVerts, normals, uvs, mater
 						// commented code seems to do the same thing?
 						var newUVs = new THREE.Vector2(uvs[0].x * bary.x + uvs[1].x * bary.y + uvs[2].x * bary.z,
 							uvs[0].y * bary.x + uvs[1].y * bary.y + uvs[2].y * bary.z);
+						
+						// normal mapping	(normal doesn't need to be interpolated)
+						var xyz = 0;
+						
+						var phongMaterial = this.getPhongMaterial(newUVs, material);
+						var newColor = Reflection.phongReflectionModel(newVert, this.cameraPosition, xyz, this.lightPos, phongMaterial);
 					}
-
-					var phongMaterial = this.getPhongMaterial(newUVs, material); // if newUVs undefined, still avoids errors
+					// if there are no UVs, there is no normal mapping to do, so normal needs to be interpolated
+					else {
+						// interpolate normal
+						var newNormal = new THREE.Vector3();
+						newNormal.add(temp.copy(normals[0]).multiplyScalar(bary.x));
+						newNormal.add(temp.copy(normals[1]).multiplyScalar(bary.y));
+						newNormal.add(temp.copy(normals[2]).multiplyScalar(bary.z));
+						
+						var newColor = Reflection.phongReflectionModel(newVert, this.cameraPosition, newNormal, this.lightPos, phongMaterial);
+					}
 					
-					var newColor = Reflection.phongReflectionModel(newVert, this.cameraPosition, newNormal, this.lightPos, phongMaterial)
-					
-					var xyz = new THREE.Vector3(newColor.r, newColor.g, newColor.b);
-					xyz.multiplyScalar(2);
-					// .subScalar() doesn't work for some reason...
-					xyz.x -= 1;
-					xyz.y -= 1;
-					xyz.z -= 1;
-					
-					// var newColor2 = Reflection.phongReflectionModel(newVert, this.cameraPosition, xyz, this.lightPos, phongMaterial)
+					// var xyz = new THREE.Vector3(newColor.r, newColor.g, newColor.b);
+					// xyz.multiplyScalar(2);
+					// // .subScalar() doesn't work for some reason...
+					// xyz.x -= 1;
+					// xyz.y -= 1;
+					// xyz.z -= 1;
 										
 					this.setPixel(i, j, newColor);
 					this.zBuffer[i][j] = zPrime;
