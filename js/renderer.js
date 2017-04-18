@@ -319,10 +319,12 @@ Renderer.drawTriangleFlat = function(verts, projectedVerts, normals, uvs, materi
 	// get averages
 	var faceNormal = sumNormals.divideScalar(verts.length);
 	var faceCentroid = sumVertices.divideScalar(verts.length);
-
-	var phongMaterial = this.getPhongMaterial(uvs, material);
-	// use to get color
-	var color = Reflection.phongReflectionModel(faceCentroid, this.cameraPosition, faceNormal, this.lightPos, phongMaterial)
+	
+	if (uvs === undefined) {
+		var phongMaterial = this.getPhongMaterial(uvs, material);
+		// use to get color
+		var color = Reflection.phongReflectionModel(faceCentroid, this.cameraPosition, faceNormal, this.lightPos, phongMaterial)
+	}
 	
 	// adapted from scanTriangle to add zBuffer stuff
   var box = this.computeBoundingBox(projectedVerts);
@@ -334,12 +336,20 @@ Renderer.drawTriangleFlat = function(verts, projectedVerts, normals, uvs, materi
 			var bary = this.computeBarycentric(projectedVerts, i, j)
 			
 			if (bary !== undefined) { // only care if point in triangle
-				// check z'/w
+				// check z'/w (already did /w in the projection, so commented out)
 				var zPrime = projectedVerts[0].z * bary.x + projectedVerts[1].z * bary.y + projectedVerts[2].z * bary.z;
-				var w = projectedVerts[0].w * bary.x + projectedVerts[1].w * bary.y + projectedVerts[2].w * bary.z;
-				if (zPrime / w < this.zBuffer[i][j]) {
+				// var w = projectedVerts[0].w * bary.x + projectedVerts[1].w * bary.y + projectedVerts[2].w * bary.z;
+								
+				if (zPrime < this.zBuffer[i][j]) { // only worth doing things if passes
+					// interpolate uvs
+					if (uvs !== undefined) {
+						var newUVs = new THREE.Vector2(uvs[0].x * bary.x + uvs[1].x * bary.y + uvs[2].x * bary.z,
+							uvs[0].y * bary.x + uvs[1].y * bary.y + uvs[2].y * bary.z);
+						var phongMaterial = this.getPhongMaterial(newUVs, material);
+						var color = Reflection.phongReflectionModel(faceCentroid, this.cameraPosition, faceNormal, this.lightPos, phongMaterial)
+					}
 					this.setPixel(i, j, color);
-					this.zBuffer[i][j] = zPrime / w; // set new zBuffer minimum
+					this.zBuffer[i][j] = zPrime; // set new zBuffer minimum
 				}
 			}
 		}
@@ -357,12 +367,14 @@ Renderer.drawTriangleGouraud = function(verts, projectedVerts, normals, uvs, mat
   // ----------- STUDENT CODE BEGIN ------------
   // ----------- Our reference solution uses 42 lines of code.
 
-	var phongMaterial = this.getPhongMaterial(uvs, material)
+	if (uvs === undefined) {
+		var phongMaterial = this.getPhongMaterial(uvs, material)
 
-  // calculate colors at each vertex using Phong Reflection Model
-  var colors = [];
-  for (i = 0; i < verts.length; i++)
-    colors[i] = Reflection.phongReflectionModel(verts[i], this.cameraPosition, normals[i], this.lightPos, phongMaterial);
+	  // calculate colors at each vertex using Phong Reflection Model
+	  var colors = [];
+	  for (var k = 0; k < verts.length; k++) // using k because porting the function into triangle scan later
+	    colors[k] = Reflection.phongReflectionModel(verts[k], this.cameraPosition, normals[k], this.lightPos, phongMaterial);
+	}
 
   // Interpolate using barycentric coordinates for each pixel within triangle
   var box = this.computeBoundingBox(projectedVerts);
@@ -374,17 +386,26 @@ Renderer.drawTriangleGouraud = function(verts, projectedVerts, normals, uvs, mat
 			var bary = this.computeBarycentric(projectedVerts, i, j);
 			
       if (bary !== undefined) {
-				var zPrime = projectedVerts[0].z * bary.x + projectedVerts[1].z * bary.y + projectedVerts[2].z * bary.z;
-				var w = projectedVerts[0].w * bary.x + projectedVerts[1].w * bary.y + projectedVerts[2].w * bary.z;
-				
-				if (zPrime / w < this.zBuffer[i][j]) {
+				var zPrime = projectedVerts[0].z * bary.x + projectedVerts[1].z * bary.y + projectedVerts[2].z * bary.z;			
+					
+				if (zPrime < this.zBuffer[i][j]) {
+					// interpolate uvs
+					if (uvs !== undefined) {
+						var newUVs = new THREE.Vector2(uvs[0].x * bary.x + uvs[1].x * bary.y + uvs[2].x * bary.z,
+							uvs[0].y * bary.x + uvs[1].y * bary.y + uvs[2].y * bary.z);
+						var phongMaterial = this.getPhongMaterial(newUVs, material);
+					  var colors = [];
+					  for (var k = 0; k < verts.length; k++)
+					    colors[k] = Reflection.phongReflectionModel(verts[k], this.cameraPosition, normals[k], this.lightPos, phongMaterial);
+					}
+					
 					// interpolate color using vertices
 					var newColor = colors[0].copyMultiplyScalar(bary.x);
 					newColor.plus(colors[1].copyMultiplyScalar(bary.y));
 					newColor.plus(colors[2].copyMultiplyScalar(bary.z));
 					
 					this.setPixel(i, j, newColor);
-					this.zBuffer[i][j] = zPrime / w;
+					this.zBuffer[i][j] = zPrime;
 				}
       }
     }
@@ -407,9 +428,8 @@ Renderer.drawTrianglePhong = function(verts, projectedVerts, normals, uvs, mater
 			
       if (bary !== undefined) {
 				var zPrime = projectedVerts[0].z * bary.x + projectedVerts[1].z * bary.y + projectedVerts[2].z * bary.z;
-				var w = projectedVerts[0].w * bary.x + projectedVerts[1].w * bary.y + projectedVerts[2].w * bary.z;
 				
-				if (zPrime / w < this.zBuffer[i][j]) {
+				if (zPrime < this.zBuffer[i][j]) {
 					var temp = new THREE.Vector3(); // for holding copies of values
 					
 					// interpolate normal
@@ -426,18 +446,30 @@ Renderer.drawTrianglePhong = function(verts, projectedVerts, normals, uvs, mater
 					
 					// interpolate UVs (https://www.gamedev.net/topic/593669-perspective-correct-barycentric-coordinates/)
 					if (uvs !== undefined) {
-						var newUVs = new THREE.Vector2((uvs[0].x / projectedVerts[0].w) * bary.x + (uvs[1].x / projectedVerts[1].w) * bary.y + (uvs[2].x / projectedVerts[2].w) * bary.z,	
-						(uvs[0].y / projectedVerts[0].w) * bary.x + (uvs[1].y / projectedVerts[1].w) * bary.y + (uvs[2].y / projectedVerts[2].w) * bary.z);
-						var wPrime = (1 / projectedVerts[0].w) * bary.x + (1 / projectedVerts[1].w) * bary.y + (1 / projectedVerts[2].w) * bary.z;
-						newUVs.divideScalar(wPrime);
+						// var newUVs = new THREE.Vector2((uvs[0].x / projectedVerts[0].w) * bary.x + (uvs[1].x / projectedVerts[1].w) * bary.y + (uvs[2].x / projectedVerts[2].w) * bary.z,
+						// (uvs[0].y / projectedVerts[0].w) * bary.x + (uvs[1].y / projectedVerts[1].w) * bary.y + (uvs[2].y / projectedVerts[2].w) * bary.z);
+						// var wPrime = (1 / projectedVerts[0].w) * bary.x + (1 / projectedVerts[1].w) * bary.y + (1 / projectedVerts[2].w) * bary.z;
+						// newUVs.divideScalar(wPrime);
+						// commented code seems to do the same thing?
+						var newUVs = new THREE.Vector2(uvs[0].x * bary.x + uvs[1].x * bary.y + uvs[2].x * bary.z,
+							uvs[0].y * bary.x + uvs[1].y * bary.y + uvs[2].y * bary.z);
 					}
 
 					var phongMaterial = this.getPhongMaterial(newUVs, material); // if newUVs undefined, still avoids errors
 					
 					var newColor = Reflection.phongReflectionModel(newVert, this.cameraPosition, newNormal, this.lightPos, phongMaterial)
 					
+					var xyz = new THREE.Vector3(newColor.r, newColor.g, newColor.b);
+					xyz.multiplyScalar(2);
+					// .subScalar() doesn't work for some reason...
+					xyz.x -= 1;
+					xyz.y -= 1;
+					xyz.z -= 1;
+					
+					// var newColor2 = Reflection.phongReflectionModel(newVert, this.cameraPosition, xyz, this.lightPos, phongMaterial)
+										
 					this.setPixel(i, j, newColor);
-					this.zBuffer[i][j] = zPrime / w;
+					this.zBuffer[i][j] = zPrime;
 				}
       }
     }
