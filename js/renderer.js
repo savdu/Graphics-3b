@@ -16,10 +16,7 @@ Reflection.phongReflectionModel = function(vertex, view, normal, lightPos, phong
   var ndotl = normal.dot(light_dir);
   color.plus(phongMaterial.diffuse.copy().multipliedBy(ndotl));
 
-  // ----------- STUDENT CODE BEGIN ------------
-  // ----------- Our reference solution uses 9 lines of code.
-
-  // ambient
+  // ambient: assume ambient light term (I_AL) is white
   color.plus(phongMaterial.ambient);
 
   // specular
@@ -27,7 +24,6 @@ Reflection.phongReflectionModel = function(vertex, view, normal, lightPos, phong
   var v = (new THREE.Vector3()).subVectors(view, vertex).normalize();
   var vdotr = Math.pow(Math.max(0, v.dot(r)), phongMaterial.shininess);
   color.plus(phongMaterial.specular.copy().multipliedBy(vdotr));
-  // ----------- STUDENT CODE END ------------
 
   return color;
 }
@@ -213,10 +209,6 @@ Renderer.projectVertices = function(verts, viewMat) {
 
 	if (counter == 3) projectedVerts = undefined; // skip if all vertices are out-of-bounds
 
-  // ----------- STUDENT CODE BEGIN ------------
-  // ----------- Our reference solution uses 12 lines of code.
-  // ----------- STUDENT CODE END ------------
-
   return projectedVerts;
 };
 
@@ -241,19 +233,12 @@ Renderer.computeBoundingBox = function(projectedVerts) {
 		if (projectedVerts[i].y < box.minY) box.minY = Math.floor(projectedVerts[i].y);
 	}
 	
-  // ----------- STUDENT CODE BEGIN ------------
-  // ----------- Our reference solution uses 14 lines of code.
-  // ----------- STUDENT CODE END ------------
-
   return box;
 };
 
 Renderer.computeBarycentric = function(projectedVerts, x, y) {
   var triCoords = [];
   // (see https://fgiesen.wordpress.com/2013/02/06/the-barycentric-conspirac/)
-  // return undefined if (x,y) is outside the triangle
-  // ----------- STUDENT CODE BEGIN ------------
-  // ----------- Our reference solution uses 15 lines of code.
   var v0x = projectedVerts[0].x;
   var v0y = projectedVerts[0].y;
   var v1x = projectedVerts[1].x;
@@ -265,11 +250,13 @@ Renderer.computeBarycentric = function(projectedVerts, x, y) {
   var f12 = (v1y-v2y)*x + (v2x-v1x)*y + (v1x*v2y - v1y*v2x);
   var f20 = (v2y-v0y)*x + (v0x-v2x)*y + (v2x*v0y - v2y*v0x);
   var area = f01 + f12 + f20;
+
+  // return undefined if (x,y) is outside the triangle
   if (f01 < 0 || f12 < 0 || f20 < 0) return undefined;
 
+  // normalize coordinates
   triCoords = new THREE.Vector3(f12/area, f20/area, f01/area);
 
-  // ----------- STUDENT CODE END ------------
   return triCoords;
 };
 
@@ -295,15 +282,6 @@ Renderer.drawTriangleWire = function(projectedVerts) {
 Renderer.setPixel = function(x, y, color) {
   this.buffer.setPixel(x, y, color)
 };
-
-// Renderer.scanTriangle = function(verts, color) {
-//   var box = this.computeBoundingBox(verts);
-//   for (var i = box.minX; i < box.maxX; i++) {
-//     for (var j = box.minY; j < box.maxY; j++) {
-//       if (this.computeBarycentric(verts, i, j) != undefined) this.setPixel(i, j, color);
-//     }
-//   }
-// };
 
 Renderer.drawTriangleFlat = function(verts, projectedVerts, normals, uvs, material) {
 	
@@ -356,18 +334,10 @@ Renderer.drawTriangleFlat = function(verts, projectedVerts, normals, uvs, materi
 			}
 		}
 	}
-	
-	// this.scanTriangle(projectedVerts, color);
-	
-  // ----------- STUDENT CODE BEGIN ------------
-  // ----------- Our reference solution uses 45 lines of code.
-  // ----------- STUDENT CODE END ------------
 };
 
 
 Renderer.drawTriangleGouraud = function(verts, projectedVerts, normals, uvs, material) {
-  // ----------- STUDENT CODE BEGIN ------------
-  // ----------- Our reference solution uses 42 lines of code.
 
 	// faster outside if uvs aren't changing (undefined)
 	if (uvs === undefined) {
@@ -413,13 +383,10 @@ Renderer.drawTriangleGouraud = function(verts, projectedVerts, normals, uvs, mat
       }
     }
   }
-
-  // ----------- STUDENT CODE END ------------
 };
 
 
 Renderer.drawTrianglePhong = function(verts, projectedVerts, normals, uvs, material) {
-  // ----------- STUDENT CODE BEGIN ------------
 	
 	// faster outside if uvs aren't changing (undefined)
 	if (uvs === undefined) {
@@ -501,10 +468,6 @@ Renderer.drawTrianglePhong = function(verts, projectedVerts, normals, uvs, mater
       }
     }
   }
-	
-	
-  // ----------- Our reference solution uses 53 lines of code.	
-  // ----------- STUDENT CODE END ------------
 };
 
 
